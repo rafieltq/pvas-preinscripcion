@@ -13,7 +13,7 @@ interface ContactInfoStepProps {
 export function ContactInfoStep({ onNext, onBack }: ContactInfoStepProps) {
   const { formData, updateFormData } = useFormContext()
 
-  const isValid = formData.email && formData.phone && formData.address && formData.city && formData.province
+  const isValid = formData.email && formData.phone
 
   return (
     <div className="space-y-6">
@@ -36,37 +36,6 @@ export function ContactInfoStep({ onNext, onBack }: ContactInfoStepProps) {
             value={formData.phone}
             onChange={(e) => updateFormData({ phone: e.target.value })}
             placeholder="809-000-0000"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="address">Dirección *</Label>
-        <Input
-          id="address"
-          value={formData.address}
-          onChange={(e) => updateFormData({ address: e.target.value })}
-          placeholder="Calle Principal #123"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="city">Ciudad / Municipio *</Label>
-          <Input
-            id="city"
-            value={formData.city}
-            onChange={(e) => updateFormData({ city: e.target.value })}
-            placeholder="Santo Domingo"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="province">Provincia *</Label>
-          <Input
-            id="province"
-            value={formData.province}
-            onChange={(e) => updateFormData({ province: e.target.value })}
-            placeholder="Distrito Nacional"
           />
         </div>
       </div>

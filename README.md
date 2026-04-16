@@ -9,6 +9,7 @@ Aplicacion Next.js para gestionar pre-inscripciones estudiantiles y administraci
 - Lint: `pnpm lint`
 - Build: `pnpm build`
 - Produccion: `pnpm start`
+- Asegurar columnas de representantes en `students`: `pnpm db:ensure-representatives`
 
 ## Admin Authentication Setup
 
@@ -41,6 +42,22 @@ node scripts/setup-database.js
 ```
 
 Este script crea/actualiza tablas requeridas (incluyendo `users`) y registra el administrador inicial usando `ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH`.
+
+### Asegurar columnas de representantes
+
+Si la base de datos fue creada con una version antigua del esquema, ejecute:
+
+```bash
+pnpm db:ensure-representatives
+```
+
+Este comando verifica la tabla `students` y agrega columnas faltantes de `father_*`, `mother_*` y `guardian_*`.
+
+### Validacion de estudiantes
+
+- El backend exige al menos un representante completo (padre, madre o tutor).
+- Un representante completo requiere: nombre, apellido y telefono.
+- La API rechaza representantes parcialmente llenados.
 
 ### Flujo de autenticacion
 

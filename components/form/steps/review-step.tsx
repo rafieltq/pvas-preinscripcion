@@ -44,6 +44,10 @@ export function ReviewStep({ onBack, onSubmit }: ReviewStepProps) {
             <span>{formData.first_name} {formData.last_name}</span>
             <span className="text-muted-foreground">Cédula:</span>
             <span>{formData.cedula}</span>
+            <span className="text-muted-foreground">Edad:</span>
+            <span>{formData.age} años</span>
+            <span className="text-muted-foreground">Género:</span>
+            <span>{formData.gender === "M" ? "Masculino" : "Femenino"}</span>
             <span className="text-muted-foreground">Fecha de Nacimiento:</span>
             <span>{formData.birth_date}</span>
           </div>
@@ -56,12 +60,6 @@ export function ReviewStep({ onBack, onSubmit }: ReviewStepProps) {
             <span>{formData.email}</span>
             <span className="text-muted-foreground">Teléfono:</span>
             <span>{formData.phone}</span>
-            <span className="text-muted-foreground">Dirección:</span>
-            <span>{formData.address}</span>
-            <span className="text-muted-foreground">Ciudad:</span>
-            <span>{formData.city}</span>
-            <span className="text-muted-foreground">Provincia:</span>
-            <span>{formData.province}</span>
           </div>
         </div>
 
@@ -70,6 +68,8 @@ export function ReviewStep({ onBack, onSubmit }: ReviewStepProps) {
           <div className="grid grid-cols-2 gap-2 text-sm">
             <span className="text-muted-foreground">Institución Anterior:</span>
             <span>{formData.previous_institution}</span>
+            <span className="text-muted-foreground">Carrera a cursar:</span>
+            <span>{formData.course_name || "No especificada"}</span>
           </div>
         </div>
 

@@ -10,6 +10,72 @@ import type {
   UpdateUserInput,
 } from "./types";
 
+export class StudentValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StudentValidationError";
+  }
+}
+
+function hasText(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function validateRepresentatives(
+  data: Pick<
+    StudentFormData,
+    | "father_first_name"
+    | "father_last_name"
+    | "father_phone"
+    | "mother_first_name"
+    | "mother_last_name"
+    | "mother_phone"
+    | "guardian_first_name"
+    | "guardian_last_name"
+    | "guardian_phone"
+  >
+): string | null {
+  const representatives = [
+    {
+      label: "padre",
+      firstName: data.father_first_name,
+      lastName: data.father_last_name,
+      phone: data.father_phone,
+    },
+    {
+      label: "madre",
+      firstName: data.mother_first_name,
+      lastName: data.mother_last_name,
+      phone: data.mother_phone,
+    },
+    {
+      label: "tutor",
+      firstName: data.guardian_first_name,
+      lastName: data.guardian_last_name,
+      phone: data.guardian_phone,
+    },
+  ] as const;
+
+  let hasCompleteRepresentative = false;
+
+  for (const representative of representatives) {
+    const hasFirstName = hasText(representative.firstName);
+    const hasLastName = hasText(representative.lastName);
+    const hasPhone = hasText(representative.phone);
+    const filledFields = Number(hasFirstName) + Number(hasLastName) + Number(hasPhone);
+
+    if (filledFields === 3) {
+      hasCompleteRepresentative = true;
+    }
+  }
+
+  if (!hasCompleteRepresentative) {
+    return "Debe incluir al menos un representante completo (padre, madre o tutor).";
+  }
+
+  return null;
+}
+
 // ============= COURSES =============
 
 export async function getCourses(): Promise<Course[]> {
@@ -40,25 +106,29 @@ export async function getCourseById(id: number): Promise<Course | null> {
 }
 
 export async function createCourse(
-  course: Pick<Course, "name" | "description" | "duration" | "schedule" | "capacity" | "active">
+  course: Pick<Course, "name" | "family" | "description" | "duration" | "schedule" | "capacity" | "active">
 ): Promise<Course> {
   const result = await turso.execute({
-    sql: "INSERT INTO courses (name, description, duration, schedule, capacity, active) VALUES (?, ?, ?, ?, ?, ?) RETURNING *",
-    args: [course.name, course.description, course.duration, course.schedule, course.capacity, course.active],
+    sql: "INSERT INTO courses (name, family, description, duration, schedule, capacity, active) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *",
+    args: [course.name, course.family, course.description, course.duration, course.schedule, course.capacity, course.active],
   });
   return result.rows[0] as unknown as Course;
 }
 
 export async function updateCourse(
   id: number,
-  course: Partial<Pick<Course, "name" | "description" | "duration" | "schedule" | "capacity" | "active">>
+  course: Partial<Pick<Course, "name" | "family" | "description" | "duration" | "schedule" | "capacity" | "active">>
 ): Promise<Course | null> {
   const fields: string[] = [];
-  const args: (string | number)[] = [];
+  const args: (string | number | null)[] = [];
 
   if (course.name !== undefined) {
     fields.push("name = ?");
     args.push(course.name);
+  }
+  if (course.family !== undefined) {
+    fields.push("family = ?");
+    args.push(course.family);
   }
   if (course.description !== undefined) {
     fields.push("description = ?");
@@ -126,36 +196,53 @@ export async function getStudentById(id: number): Promise<Student | null> {
 }
 
 export async function createStudent(student: StudentFormData): Promise<Student> {
+  const representativeValidationError = validateRepresentatives(student);
+  if (representativeValidationError) {
+    throw new StudentValidationError(representativeValidationError);
+  }
+
+  const fields = [
+    "first_name", "last_name", "cedula", "age", "gender", "birth_date",
+    "father_first_name", "father_last_name", "father_phone", "father_email",
+    "mother_first_name", "mother_last_name", "mother_phone", "mother_email",
+    "guardian_first_name", "guardian_last_name", "guardian_phone", "guardian_email",
+    "email", "phone", "education_level", "previous_institution", "course_id"
+  ];
+
+  const args: (string | number | null)[] = [
+    student.first_name,
+    student.last_name,
+    student.cedula,
+    student.age,
+    student.gender,
+    student.birth_date,
+    student.father_first_name,
+    student.father_last_name,
+    student.father_phone,
+    student.father_email,
+    student.mother_first_name,
+    student.mother_last_name,
+    student.mother_phone,
+    student.mother_email,
+    student.guardian_first_name,
+    student.guardian_last_name,
+    student.guardian_phone,
+    student.guardian_email,
+    student.email,
+    student.phone,
+    student.education_level,
+    student.previous_institution,
+    student.course_id,
+  ];
+
+  if (student.created_at) {
+    fields.push("created_at");
+    args.push(student.created_at);
+  }
+
   const result = await turso.execute({
-    sql: `INSERT INTO students (
-      first_name, last_name, cedula, father_first_name, father_last_name, father_phone,
-      mother_first_name, mother_last_name, mother_phone, guardian_first_name, guardian_last_name,
-      guardian_phone, email, phone, birth_date,
-      address, city, province, education_level, previous_institution, course_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
-    args: [
-      student.first_name,
-      student.last_name,
-      student.cedula,
-      student.father_first_name,
-      student.father_last_name,
-      student.father_phone,
-      student.mother_first_name,
-      student.mother_last_name,
-      student.mother_phone,
-      student.guardian_first_name,
-      student.guardian_last_name,
-      student.guardian_phone,
-      student.email,
-      student.phone,
-      student.birth_date,
-      student.address,
-      student.city,
-      student.province,
-      student.education_level,
-      student.previous_institution,
-      student.course_id,
-    ],
+    sql: `INSERT INTO students (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")}) RETURNING *`,
+    args,
   });
 
   // Increment enrolled count for the course
@@ -167,6 +254,364 @@ export async function createStudent(student: StudentFormData): Promise<Student> 
   }
 
   return result.rows[0] as unknown as Student;
+}
+
+type ImportStatus = "created" | "skipped" | "error";
+
+export interface StudentImportRowResult {
+  row: number;
+  cedula: string;
+  status: ImportStatus;
+  reason?: string;
+}
+
+export interface StudentImportSummary {
+  total: number;
+  created: number;
+  skipped: number;
+  errors: number;
+  results: StudentImportRowResult[];
+  downloadableRows: Array<Record<string, string | number | null>>;
+}
+
+export const VALID_IMPORT_COLUMNS = [
+  "first_name",
+  "last_name",
+  "cedula",
+  "email",
+  "age",
+  "gender",
+  "birth_date",
+  "father_first_name",
+  "father_last_name",
+  "father_phone",
+  "father_email",
+  "mother_first_name",
+  "mother_last_name",
+  "mother_phone",
+  "mother_email",
+  "guardian_first_name",
+  "guardian_last_name",
+  "guardian_phone",
+  "guardian_email",
+  "phone",
+  "education_level",
+  "previous_institution",
+  "course_id",
+  "created_at",
+] as const;
+
+export const REQUIRED_IMPORT_COLUMNS = ["first_name", "last_name", "email"] as const;
+
+const nullableImportFields = new Set([
+  "age",
+  "gender",
+  "father_first_name",
+  "father_last_name",
+  "father_phone",
+  "father_email",
+  "mother_first_name",
+  "mother_last_name",
+  "mother_phone",
+  "mother_email",
+  "guardian_first_name",
+  "guardian_last_name",
+  "guardian_phone",
+  "guardian_email",
+  "created_at",
+]);
+
+export interface CsvValidationResult {
+  valid: boolean;
+  missingColumns: string[];
+  unknownColumns: string[];
+  errors: string[];
+}
+
+export function validateCsvColumns(headers: string[]): CsvValidationResult {
+  const normalizedHeaders = headers.map((h) => h.trim().toLowerCase());
+  const missingColumns: string[] = [];
+  const unknownColumns: string[] = [];
+
+  for (const required of REQUIRED_IMPORT_COLUMNS) {
+    if (!normalizedHeaders.includes(required)) {
+      missingColumns.push(required);
+    }
+  }
+
+  for (const header of normalizedHeaders) {
+    if (!VALID_IMPORT_COLUMNS.includes(header as typeof VALID_IMPORT_COLUMNS[number])) {
+      unknownColumns.push(header);
+    }
+  }
+
+  return {
+    valid: missingColumns.length === 0 && unknownColumns.length === 0,
+    missingColumns,
+    unknownColumns,
+    errors: [],
+  };
+}
+
+function validateImportedStudentRow(raw: unknown): { data?: StudentFormData; reason?: string } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { reason: "Fila inválida: se esperaba un objeto JSON." };
+  }
+
+  const record = raw as Record<string, unknown>;
+  const normalized: Record<string, string | number | null> = {};
+
+  for (const key of VALID_IMPORT_COLUMNS) {
+    const value = record[key];
+
+    if (value === undefined) {
+      continue;
+    }
+
+    if (key === "course_id") {
+      if (value === null || value === "" || value === undefined) {
+        normalized.course_id = null;
+        continue;
+      }
+
+      if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+        normalized.course_id = value;
+        continue;
+      }
+
+      const numValue = Number(value);
+      if (Number.isInteger(numValue) && numValue > 0) {
+        normalized.course_id = numValue;
+        continue;
+      }
+
+      return { reason: `course_id debe ser un número entero positivo. Valor recibido: "${value}"` };
+    }
+
+    if (key === "age") {
+      if (value === null || value === "" || value === undefined) {
+        normalized.age = null;
+        continue;
+      }
+
+      const numValue = Number(value);
+      if (Number.isInteger(numValue) && numValue > 0 && numValue < 150) {
+        normalized.age = numValue;
+        continue;
+      }
+
+      return { reason: `age debe ser un número entero positivo. Valor recibido: "${value}"` };
+    }
+
+    if (key === "gender") {
+      if (value === null || value === "" || value === undefined) {
+        normalized.gender = null;
+        continue;
+      }
+
+      const strValue = String(value).trim().toLowerCase();
+      if (strValue === "m" || strValue === "masculino") {
+        normalized.gender = "M";
+        continue;
+      }
+      if (strValue === "f" || strValue === "femenino") {
+        normalized.gender = "F";
+        continue;
+      }
+
+      return { reason: `gender debe ser "M", "Masculino", "F" o "Femenino". Valor recibido: "${value}"` };
+    }
+
+    if (key === "created_at") {
+      if (value === null || value === "" || value === undefined) {
+        normalized.created_at = null;
+        continue;
+      }
+
+      const dateStr = String(value).trim();
+      const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}( \d{1,2}:\d{2}(:\d{2})?)?$/;
+      const isoDateRegex = /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}(:\d{2})?)?$/;
+
+      if (dateRegex.test(dateStr) || isoDateRegex.test(dateStr)) {
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          const formattedDate = date.toISOString().replace("T", " ").substring(0, 19);
+          normalized.created_at = formattedDate;
+          continue;
+        }
+      }
+
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        const formattedDate = date.toISOString().replace("T", " ").substring(0, 19);
+        normalized.created_at = formattedDate;
+        continue;
+      }
+
+      return { reason: `created_at tiene formato inválido. Use: DD/MM/YYYY HH:MM:SS o YYYY-MM-DD HH:MM:SS. Valor recibido: "${value}"` };
+    }
+
+    if (nullableImportFields.has(key)) {
+      if (value === null || value === "" || value === undefined) {
+        normalized[key] = null;
+        continue;
+      }
+
+      if (typeof value !== "string") {
+        return { reason: `El campo ${key} debe ser texto o vacío.` };
+      }
+
+      normalized[key] = value.trim();
+      continue;
+    }
+
+    if (typeof value !== "string") {
+      return { reason: `El campo ${key} debe ser texto.` };
+    }
+
+    normalized[key] = value.trim();
+  }
+
+  for (const field of REQUIRED_IMPORT_COLUMNS) {
+    if (!normalized[field]) {
+      return { reason: `El campo "${field}" es obligatorio.` };
+    }
+  }
+
+  const representativeValidationError = validateRepresentatives(normalized as StudentFormData);
+  if (representativeValidationError) {
+    return { reason: representativeValidationError };
+  }
+
+  return { data: normalized as unknown as StudentFormData };
+}
+
+export async function importStudentsBulk(rawRows: unknown[]): Promise<StudentImportSummary> {
+  const summary: StudentImportSummary = {
+    total: rawRows.length,
+    created: 0,
+    skipped: 0,
+    errors: 0,
+    results: [],
+    downloadableRows: [],
+  };
+
+  const normalizedRows: Array<{ row: number; data: StudentFormData }> = [];
+
+  for (let index = 0; index < rawRows.length; index += 1) {
+    const rowNumber = index + 1;
+    const { data, reason } = validateImportedStudentRow(rawRows[index]);
+
+    if (!data) {
+      const rowResult: StudentImportRowResult = {
+        row: rowNumber,
+        cedula: "N/A",
+        status: "error",
+        reason,
+      };
+
+      summary.errors += 1;
+      summary.results.push(rowResult);
+      summary.downloadableRows.push({
+        row: rowNumber,
+        reason: reason || "Fila inválida",
+      });
+      continue;
+    }
+
+    normalizedRows.push({ row: rowNumber, data });
+  }
+
+  if (normalizedRows.length === 0) {
+    return summary;
+  }
+
+  const uniqueCedulas = [...new Set(normalizedRows.map((item) => item.data.cedula))];
+  const placeholders = uniqueCedulas.map(() => "?").join(", ");
+  const existingCedulas = new Set<string>();
+
+  if (placeholders.length > 0) {
+    const existingRows = await turso.execute({
+      sql: `SELECT cedula FROM students WHERE cedula IN (${placeholders})`,
+      args: uniqueCedulas,
+    });
+
+    for (const row of existingRows.rows) {
+      const value = (row as unknown as { cedula: string }).cedula;
+      if (typeof value === "string") {
+        existingCedulas.add(value);
+      }
+    }
+  }
+
+  const seenCedulas = new Set<string>();
+
+  for (const row of normalizedRows) {
+    const cedula = row.data.cedula;
+
+    if (existingCedulas.has(cedula) || seenCedulas.has(cedula)) {
+      const reason = "Cédula duplicada."
+      summary.skipped += 1;
+      summary.results.push({
+        row: row.row,
+        cedula,
+        status: "skipped",
+        reason,
+      });
+      summary.downloadableRows.push({
+        ...row.data,
+        row: row.row,
+        reason,
+      });
+      continue;
+    }
+
+    seenCedulas.add(cedula);
+
+    try {
+      await createStudent(row.data);
+      summary.created += 1;
+      summary.results.push({
+        row: row.row,
+        cedula,
+        status: "created",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "No se pudo crear el estudiante en la base de datos.";
+
+      if (errorMessage.includes("UNIQUE") && errorMessage.includes("students.cedula")) {
+        const reason = "Cédula duplicada."
+        summary.skipped += 1;
+        summary.results.push({
+          row: row.row,
+          cedula,
+          status: "skipped",
+          reason,
+        });
+        summary.downloadableRows.push({
+          ...row.data,
+          row: row.row,
+          reason,
+        });
+      } else {
+        summary.errors += 1;
+        summary.results.push({
+          row: row.row,
+          cedula,
+          status: "error",
+          reason: errorMessage,
+        });
+        summary.downloadableRows.push({
+          ...row.data,
+          row: row.row,
+          reason: errorMessage,
+        });
+      }
+    }
+  }
+
+  return summary;
 }
 
 export async function updateStudentStatus(id: number, status: Student["status"]): Promise<Student | null> {

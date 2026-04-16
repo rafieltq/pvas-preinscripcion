@@ -1,0 +1,3 @@
+first_name,last_name,cedula,age,gender,birth_date,father_first_name,father_last_name,father_phone,father_email,mother_first_name,mother_last_name,mother_phone,mother_email,guardian_first_name,guardian_last_name,guardian_phone,guardian_email,email,phone,education_level,previous_institution,course_id,created_at
+Juan,Pérez,001-0000001-5,16,M,2010-03-15,Carlos,Pérez,8095550001,carlos@email.com,María,Pérez,8095550002,maria@email.com,,,,juan@email.com,8095550003,bachiller_tecnico,Colegio San José,1,2026-01-15 10:30:00
+María,García,001-0000002-3,15,F,2011-05-20,Pedro,García,8095550004,pedro@email.com,Ana,García,8095550005,ana@email.com,,,,maria@email.com,8095550006,bachiller_tecnico,Escuela Normal,2,2026-01-16 14:45:00

@@ -34,6 +34,8 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
     formData.first_name.trim() &&
     formData.last_name.trim() &&
     formData.cedula.trim() &&
+    formData.age !== null &&
+    formData.gender !== "" &&
     formData.birth_date
 
   const hasFatherInfo =
@@ -83,7 +85,7 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="cedula">Cédula *</Label>
           <Input
@@ -93,6 +95,34 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
             placeholder="001-0000000-0"
           />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="age">Edad *</Label>
+          <Input
+            id="age"
+            type="number"
+            min="1"
+            max="100"
+            value={formData.age ?? ""}
+            onChange={(e) => updateFormData({ age: e.target.value ? Number(e.target.value) : null })}
+            placeholder="15"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="gender">Género *</Label>
+          <select
+            id="gender"
+            value={formData.gender}
+            onChange={(e) => updateFormData({ gender: e.target.value })}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">Seleccione</option>
+            <option value="M">Masculino</option>
+            <option value="F">Femenino</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="birth_date">Fecha de Nacimiento *</Label>
           <Input
@@ -119,6 +149,7 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
                     father_first_name: cannotProvide ? "" : formData.father_first_name,
                     father_last_name: cannotProvide ? "" : formData.father_last_name,
                     father_phone: cannotProvide ? "" : formData.father_phone,
+                    father_email: cannotProvide ? "" : formData.father_email,
                   })
                 }}
               />
@@ -129,7 +160,7 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
           </div>
 
           {!formData.father_cannot_provide && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="father_first_name">Nombre</Label>
                 <Input
@@ -158,6 +189,16 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
                   placeholder="Ejemplo: 809-555-0100"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="father_email">Correo</Label>
+                <Input
+                  id="father_email"
+                  type="email"
+                  value={formData.father_email}
+                  onChange={(e) => updateFormData({ father_email: e.target.value })}
+                  placeholder="Ejemplo: padre@email.com"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -176,6 +217,7 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
                     mother_first_name: cannotProvide ? "" : formData.mother_first_name,
                     mother_last_name: cannotProvide ? "" : formData.mother_last_name,
                     mother_phone: cannotProvide ? "" : formData.mother_phone,
+                    mother_email: cannotProvide ? "" : formData.mother_email,
                   })
                 }}
               />
@@ -186,7 +228,7 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
           </div>
 
           {!formData.mother_cannot_provide && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="mother_first_name">Nombre</Label>
                 <Input
@@ -215,6 +257,16 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
                   placeholder="Ejemplo: 829-555-0100"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="mother_email">Correo</Label>
+                <Input
+                  id="mother_email"
+                  type="email"
+                  value={formData.mother_email}
+                  onChange={(e) => updateFormData({ mother_email: e.target.value })}
+                  placeholder="Ejemplo: madre@email.com"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -233,6 +285,7 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
                     guardian_first_name: cannotProvide ? "" : formData.guardian_first_name,
                     guardian_last_name: cannotProvide ? "" : formData.guardian_last_name,
                     guardian_phone: cannotProvide ? "" : formData.guardian_phone,
+                    guardian_email: cannotProvide ? "" : formData.guardian_email,
                   })
                 }}
               />
@@ -243,7 +296,7 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
           </div>
 
           {!formData.guardian_cannot_provide && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="guardian_first_name">Nombre</Label>
                 <Input
@@ -270,6 +323,16 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
                   value={formData.guardian_phone}
                   onChange={(e) => updateFormData({ guardian_phone: formatDrPhone(e.target.value) })}
                   placeholder="Ejemplo: 849-555-0100"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian_email">Correo</Label>
+                <Input
+                  id="guardian_email"
+                  type="email"
+                  value={formData.guardian_email}
+                  onChange={(e) => updateFormData({ guardian_email: e.target.value })}
+                  placeholder="Ejemplo: tutor@email.com"
                 />
               </div>
             </div>

@@ -36,6 +36,7 @@ export default function AdminCoursesPage() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null)
   const [formData, setFormData] = useState({
     name: "",
+    family: "",
     description: "",
     duration: "",
     schedule: "",
@@ -44,7 +45,7 @@ export default function AdminCoursesPage() {
   })
 
   const resetForm = () => {
-    setFormData({ name: "", description: "", duration: "", schedule: "", capacity: 30, active: 1 })
+    setFormData({ name: "", family: "", description: "", duration: "", schedule: "", capacity: 30, active: 1 })
     setEditingCourse(null)
   }
 
@@ -57,6 +58,7 @@ export default function AdminCoursesPage() {
     setEditingCourse(course)
     setFormData({
       name: course.name,
+      family: course.family || "",
       description: course.description || "",
       duration: course.duration,
       schedule: course.schedule || "",
@@ -133,6 +135,17 @@ export default function AdminCoursesPage() {
                   }
                   placeholder="Técnico en Informática"
                   required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="family">Familia</Label>
+                <Input
+                  id="family"
+                  value={formData.family}
+                  onChange={(e) =>
+                    setFormData({ ...formData, family: e.target.value })
+                  }
+                  placeholder="Técnicos, Bachiller, etc."
                 />
               </div>
               <div className="space-y-2">
@@ -222,6 +235,7 @@ export default function AdminCoursesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
+                <TableHead>Familia</TableHead>
                 <TableHead>Duración</TableHead>
                 <TableHead>Capacidad</TableHead>
                 <TableHead>Inscritos</TableHead>
@@ -241,6 +255,11 @@ export default function AdminCoursesPage() {
                         </p>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {course.family && (
+                      <Badge variant="outline">{course.family}</Badge>
+                    )}
                   </TableCell>
                   <TableCell>{course.duration}</TableCell>
                   <TableCell>{course.capacity}</TableCell>
@@ -277,7 +296,7 @@ export default function AdminCoursesPage() {
               ))}
               {(!courses || courses.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No hay carreras registradas
                   </TableCell>
                 </TableRow>

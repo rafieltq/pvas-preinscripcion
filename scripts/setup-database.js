@@ -22,6 +22,7 @@ async function setupDatabase() {
     CREATE TABLE IF NOT EXISTS courses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      family TEXT,
       description TEXT,
       duration TEXT,
       schedule TEXT,
@@ -41,21 +42,23 @@ async function setupDatabase() {
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
       cedula TEXT UNIQUE NOT NULL,
+      age INTEGER,
+      gender TEXT,
+      birth_date TEXT,
       father_first_name TEXT,
       father_last_name TEXT,
       father_phone TEXT,
+      father_email TEXT,
       mother_first_name TEXT,
       mother_last_name TEXT,
       mother_phone TEXT,
+      mother_email TEXT,
       guardian_first_name TEXT,
       guardian_last_name TEXT,
       guardian_phone TEXT,
+      guardian_email TEXT,
       email TEXT NOT NULL,
       phone TEXT,
-      birth_date TEXT,
-      address TEXT,
-      city TEXT,
-      province TEXT,
       education_level TEXT,
       previous_institution TEXT,
       course_id INTEGER,
@@ -125,12 +128,16 @@ async function setupDatabase() {
 
   // Insert sample courses
   await client.execute(`
-    INSERT OR IGNORE INTO courses (id, name, description, duration, schedule, capacity) VALUES 
-    (1, 'Técnico en Informática', 'Formación técnica en sistemas informáticos, redes y programación básica.', '2 años', 'Lunes a Viernes 8:00 AM - 12:00 PM', 35),
-    (2, 'Técnico en Electricidad', 'Capacitación en instalaciones eléctricas residenciales e industriales.', '2 años', 'Lunes a Viernes 1:00 PM - 5:00 PM', 30),
-    (3, 'Técnico en Mecánica Automotriz', 'Formación en diagnóstico y reparación de vehículos automotores.', '2 años', 'Lunes a Viernes 8:00 AM - 12:00 PM', 25),
-    (4, 'Técnico en Contabilidad', 'Preparación en gestión contable y financiera empresarial.', '2 años', 'Lunes a Viernes 1:00 PM - 5:00 PM', 40),
-    (5, 'Técnico en Enfermería', 'Formación en cuidados de salud y asistencia médica.', '3 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 30)
+    INSERT OR IGNORE INTO courses (id, name, family, description, duration, schedule, capacity) VALUES 
+    (1, 'Instalaciones Eléctricas', 'Electricidad y Electrónica', 'Formación en instalación y mantenimiento de sistemas eléctricos.', '3 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 30),
+    (2, 'Muebles y Estructura De Madera', 'Madera y Muebles', 'Fabricación y diseño de muebles y estructuras de madera.', '3 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 25),
+    (3, 'Electromecánica de Vehículos', 'Fabricación, Instalación', 'Diagnóstico y reparación de sistemas electromecánicos vehiculares.', '3 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 25),
+    (4, 'Gestión Administrativa y Tributaria', 'Administración y Comercio', 'Formación en administración y gestión tributaria.', '2 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 35),
+    (5, 'Desarrollo y Administración De Aplicaciones', 'Informática y Comunicaciones', 'Desarrollo de software y administración de aplicaciones informáticas.', '3 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 30),
+    (6, 'Refrigeración y Acondicionamiento de Aire', 'Electricidad y Electrónica', 'Instalación y mantenimiento de sistemas de refrigeración y climatización.', '3 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 25),
+    (7, 'Soporte De Redes y Sistemas', 'Informática y Comunicaciones', 'Soporte técnico y administración de redes y sistemas.', '3 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 30),
+    (8, 'GESTIÓN DE INFRAESTRUCTURA DE REDES Y SISTEMAS INFORMÁTICOS', 'Informática y Comunicaciones', 'Gestión de infraestructura tecnológica y sistemas informáticos.', '3 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 30),
+    (9, 'DISEÑO Y DESARROLLO DE APLICACIONES INFORMÁTICAS', 'Informática y Comunicaciones', 'Diseño y desarrollo de aplicaciones informáticas.', '3 años', 'Lunes a Viernes 8:00 AM - 2:00 PM', 30)
   `);
   console.log("Inserted sample courses");
 

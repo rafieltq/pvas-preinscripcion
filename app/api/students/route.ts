@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStudents, createStudent } from "@/lib/db/service";
+import { getStudents, createStudent, StudentValidationError } from "@/lib/db/service";
 import { requireAdminSession } from "@/lib/auth/api";
 
 export async function GET(request: Request) {
@@ -22,6 +22,9 @@ export async function POST(request: Request) {
     return NextResponse.json(student, { status: 201 });
   } catch (error) {
     console.error("Error creating student:", error);
+    if (error instanceof StudentValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ error: "Failed to create student" }, { status: 500 });
   }
 }

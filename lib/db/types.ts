@@ -1,6 +1,7 @@
 export interface Course {
   id: number;
   name: string;
+  family: string | null;
   description: string;
   duration: string;
   schedule: string;
@@ -16,21 +17,23 @@ export interface Student {
   first_name: string;
   last_name: string;
   cedula: string;
+  age: number | null;
+  gender: string | null;
+  birth_date: string;
   father_first_name: string | null;
   father_last_name: string | null;
   father_phone: string | null;
+  father_email: string | null;
   mother_first_name: string | null;
   mother_last_name: string | null;
   mother_phone: string | null;
+  mother_email: string | null;
   guardian_first_name: string | null;
   guardian_last_name: string | null;
   guardian_phone: string | null;
+  guardian_email: string | null;
   email: string;
   phone: string;
-  birth_date: string;
-  address: string;
-  city: string;
-  province: string;
   education_level: string;
   previous_institution: string;
   course_id: number | null;
@@ -79,4 +82,4 @@ export interface UpdateUserInput {
   active?: number;
 }
 
-export type StudentFormData = Omit<Student, "id" | "created_at" | "updated_at" | "course_name" | "status" | "notes">;
+export type StudentFormData = Omit<Student, "id" | "updated_at" | "course_name" | "status" | "notes">;

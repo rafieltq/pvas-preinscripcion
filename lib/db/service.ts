@@ -623,7 +623,6 @@ export async function updateStudentStatus(id: number, status: Student["status"])
 }
 
 export async function deleteStudent(id: number): Promise<boolean> {
-  // Get student to decrement course count
   const student = await getStudentById(id);
   if (student && student.course_id) {
     await turso.execute({
@@ -637,6 +636,118 @@ export async function deleteStudent(id: number): Promise<boolean> {
     args: [id],
   });
   return result.rowsAffected > 0;
+}
+
+export async function updateStudent(
+  id: number,
+  data: Partial<StudentFormData>
+): Promise<Student | null> {
+  const fields: string[] = [];
+  const args: (string | number | null)[] = [];
+
+  const allowedFields = [
+    "first_name", "last_name", "age", "gender", "birth_date",
+    "father_first_name", "father_last_name", "father_phone", "father_email",
+    "mother_first_name", "mother_last_name", "mother_phone", "mother_email",
+    "guardian_first_name", "guardian_last_name", "guardian_phone", "guardian_email",
+    "email", "phone", "education_level", "previous_institution", "cedula"
+  ] as const;
+
+  for (const key of allowedFields) {
+    if (key in data) {
+      fields.push(`${key} = ?`);
+      args.push((data as Record<string, unknown>)[key] as string | number | null);
+    }
+  }
+
+  if (fields.length === 0) return getStudentById(id);
+
+  fields.push("updated_at = datetime('now')");
+  args.push(id);
+
+  const result = await turso.execute({
+    sql: `UPDATE students SET ${fields.join(", ")} WHERE id = ? RETURNING *`,
+    args,
+  });
+
+  return (result.rows[0] as unknown as Student) || null;
+}
+
+const PIN_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+export function generatePin(length = 6): string {
+  let pin = "";
+  for (let i = 0; i < length; i++) {
+    pin += PIN_CHARS[Math.floor(Math.random() * PIN_CHARS.length)];
+  }
+  return pin;
+}
+
+export async function setCorrectionPin(studentId: number): Promise<{ pin: string; expiresAt: number }> {
+  const pin = generatePin(6);
+  const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+
+  await turso.execute({
+    sql: `UPDATE students SET verification_pin = ?, verification_pin_expires_at = ?, verification_pin_attempts = 0, correction_sent_at = ? WHERE id = ?`,
+    args: [pin, expiresAt, Date.now(), studentId],
+  });
+
+  return { pin, expiresAt };
+}
+
+export async function verifyCorrectionPin(
+  studentId: number,
+  pin: string
+): Promise<{ success: boolean; attemptsRemaining: number; locked: boolean }> {
+  const student = await getStudentById(studentId);
+
+  if (!student) {
+    return { success: false, attemptsRemaining: 0, locked: true };
+  }
+
+  if (student.verification_pin_attempts >= 3) {
+    return { success: false, attemptsRemaining: 0, locked: true };
+  }
+
+  if (!student.verification_pin || !student.verification_pin_expires_at) {
+    return { success: false, attemptsRemaining: 3 - student.verification_pin_attempts, locked: false };
+  }
+
+  if (Date.now() > student.verification_pin_expires_at) {
+    return { success: false, attemptsRemaining: 0, locked: true };
+  }
+
+  if (student.verification_pin !== pin) {
+    const newAttempts = student.verification_pin_attempts + 1;
+    await turso.execute({
+      sql: `UPDATE students SET verification_pin_attempts = ? WHERE id = ?`,
+      args: [newAttempts, studentId],
+    });
+
+    if (newAttempts >= 3) {
+      return { success: false, attemptsRemaining: 0, locked: true };
+    }
+
+    return { success: false, attemptsRemaining: 3 - newAttempts, locked: false };
+  }
+
+  await turso.execute({
+    sql: `UPDATE students SET verification_pin_attempts = 0 WHERE id = ?`,
+    args: [studentId],
+  });
+
+  return { success: true, attemptsRemaining: 3, locked: false };
+}
+
+export async function clearCorrectionPin(studentId: number): Promise<void> {
+  await turso.execute({
+    sql: `UPDATE students SET verification_pin = NULL, verification_pin_expires_at = NULL, verification_pin_attempts = 0 WHERE id = ?`,
+    args: [studentId],
+  });
+}
+
+export async function getStudentForCorrection(studentId: number): Promise<Student | null> {
+  return getStudentById(studentId);
 }
 
 // ============= SETTINGS =============

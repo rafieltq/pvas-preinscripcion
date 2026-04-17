@@ -5,7 +5,6 @@ import {
   ClipboardCheck,
   FileText,
   GraduationCap,
-  Phone,
   User,
   type LucideIcon,
 } from "lucide-react"
@@ -19,7 +18,6 @@ interface StepIndicatorProps {
 const stepIcons: LucideIcon[] = [
   ClipboardCheck,
   User,
-  Phone,
   GraduationCap,
   FileText,
   Check,

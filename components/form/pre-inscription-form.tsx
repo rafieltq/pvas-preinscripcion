@@ -4,16 +4,14 @@ import { useFormContext } from "@/lib/form-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { StepIndicator } from "./step-indicator"
 import { AgreementStep } from "./steps/agreement-step"
-import { PersonalInfoStep } from "./steps/personal-info"
-import { ContactInfoStep } from "./steps/contact-info"
+import { PersonalContactStep } from "./steps/personal-contact-step"
 import { AcademicInfoStep } from "./steps/academic-info"
 import { DocumentsStep } from "./steps/documents-step"
 import { ReviewStep } from "./steps/review-step"
 import { SuccessStep } from "./steps/success-step"
 import { useState } from "react"
-import { NotebookPen } from "lucide-react"
 
-const steps = ["Acuerdo", "Personal", "Contacto", "Académico", "Documentos", "Revisión"]
+const steps = ["Acuerdo", "Personal y Contacto", "Académico", "Documentos", "Revisión"]
 
 export function PreInscriptionForm() {
   const { formData, currentStep, setCurrentStep, resetForm } = useFormContext()
@@ -90,11 +88,10 @@ export function PreInscriptionForm() {
         <StepIndicator steps={steps} currentStep={currentStep} />
 
         {currentStep === 0 && <AgreementStep onNext={handleNext} />}
-        {currentStep === 1 && <PersonalInfoStep onNext={handleNext} />}
-        {currentStep === 2 && <ContactInfoStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 3 && <AcademicInfoStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 4 && <DocumentsStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 5 && <ReviewStep onBack={handleBack} onSubmit={handleSubmit} />}
+        {currentStep === 1 && <PersonalContactStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 2 && <AcademicInfoStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 3 && <DocumentsStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 4 && <ReviewStep onBack={handleBack} onSubmit={handleSubmit} />}
       </CardContent>
     </Card>
   )

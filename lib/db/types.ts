@@ -40,6 +40,10 @@ export interface Student {
   course_name?: string;
   status: "pending" | "in_review" | "accepted" | "rejected";
   notes: string;
+  verification_pin: string | null;
+  verification_pin_expires_at: number | null;
+  verification_pin_attempts: number;
+  correction_sent_at: number | null;
   created_at: string;
   updated_at: string;
 }

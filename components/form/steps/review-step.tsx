@@ -57,9 +57,9 @@ export function ReviewStep({ onBack, onSubmit }: ReviewStepProps) {
           <h3 className="font-semibold text-foreground">Información de Contacto</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <span className="text-muted-foreground">Email:</span>
-            <span>{formData.email}</span>
+            <span>{formData.email || "No proporcionado"}</span>
             <span className="text-muted-foreground">Teléfono:</span>
-            <span>{formData.phone}</span>
+            <span>{formData.phone || "No proporcionado"}</span>
           </div>
         </div>
 

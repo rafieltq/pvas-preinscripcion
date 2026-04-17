@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -28,7 +29,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download, Eye, Upload } from "lucide-react"
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Download,
+  Eye,
+  Mail,
+  Upload,
+} from "lucide-react"
+import { toast } from "sonner"
 import type { Student, Course } from "@/lib/db/types"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -220,6 +231,9 @@ export default function AdminStudentsPage() {
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(25)
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set())
+  const [sendingLinkId, setSendingLinkId] = useState<number | null>(null)
+  const [sendingBulkLinks, setSendingBulkLinks] = useState(false)
 
   const filteredStudents = students?.filter((s) =>
     filterStatus === "all" ? true : s.status === filterStatus
@@ -293,6 +307,87 @@ export default function AdminStudentsPage() {
     mutate()
     setSelectedStudent(null)
   }
+
+  const sendCorrectionLink = async (studentId: number) => {
+    setSendingLinkId(studentId)
+    try {
+      const res = await fetch(`/api/students/${studentId}`, {
+        method: "POST",
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.error(data.error || "Error al enviar el enlace")
+      } else {
+        toast.success(data.message || "Enlace enviado exitosamente")
+      }
+    } catch {
+      toast.error("Error al enviar el enlace")
+    } finally {
+      setSendingLinkId(null)
+    }
+  }
+
+  const sendBulkCorrectionLinks = async () => {
+    if (selectedStudentIds.size === 0) {
+      toast.error("Seleccione al menos un estudiante")
+      return
+    }
+
+    setSendingBulkLinks(true)
+    try {
+      const res = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send-correction-links",
+          ids: Array.from(selectedStudentIds),
+        }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.error(data.error || "Error al enviar los enlaces")
+      } else {
+        toast.success(
+          `Enlaces enviados: ${data.summary?.successful || 0} exitosos, ${data.summary?.failed || 0} fallidos`
+        )
+        setSelectedStudentIds(new Set())
+      }
+    } catch {
+      toast.error("Error al enviar los enlaces")
+    } finally {
+      setSendingBulkLinks(false)
+    }
+  }
+
+  const toggleStudentSelection = (studentId: number) => {
+    const newSelection = new Set(selectedStudentIds)
+    if (newSelection.has(studentId)) {
+      newSelection.delete(studentId)
+    } else {
+      newSelection.add(studentId)
+    }
+    setSelectedStudentIds(newSelection)
+  }
+
+  const toggleAllSelection = () => {
+    if (!paginatedStudents) return
+
+    const allSelected = paginatedStudents.every((s) => selectedStudentIds.has(s.id))
+    if (allSelected) {
+      const newSelection = new Set(selectedStudentIds)
+      paginatedStudents.forEach((s) => newSelection.delete(s.id))
+      setSelectedStudentIds(newSelection)
+    } else {
+      const newSelection = new Set(selectedStudentIds)
+      paginatedStudents.forEach((s) => newSelection.add(s.id))
+      setSelectedStudentIds(newSelection)
+    }
+  }
+
+  const allPageSelected = paginatedStudents?.every((s) => selectedStudentIds.has(s.id)) ?? false
+  const somePageSelected = paginatedStudents?.some((s) => selectedStudentIds.has(s.id)) ?? false
 
   const downloadTemplate = () => {
     const sampleRow: Record<string, string | number | null> = {
@@ -460,6 +555,18 @@ export default function AdminStudentsPage() {
           <p className="text-muted-foreground">Gestión de pre-inscripciones</p>
         </div>
         <div className="flex items-center gap-2">
+          {selectedStudentIds.size > 0 && (
+            <Button
+              variant="outline"
+              onClick={sendBulkCorrectionLinks}
+              disabled={sendingBulkLinks}
+            >
+              <Mail className="h-4 w-4" />
+              {sendingBulkLinks
+                ? "Enviando..."
+                : `Enviar enlaces (${selectedStudentIds.size})`}
+            </Button>
+          )}
           <Button variant="outline" onClick={downloadTemplate}>
             <Download className="h-4 w-4" />
             Descargar plantilla
@@ -557,6 +664,17 @@ export default function AdminStudentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={allPageSelected}
+                    ref={(el) => {
+                      if (el) {
+                        (el as HTMLButtonElement).dataset.indeterminate = String(!allPageSelected && somePageSelected)
+                      }
+                    }}
+                    onCheckedChange={toggleAllSelection}
+                  />
+                </TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Cédula</TableHead>
                 <TableHead>Carrera</TableHead>
@@ -568,6 +686,12 @@ export default function AdminStudentsPage() {
             <TableBody>
               {paginatedStudents?.map((student) => (
                 <TableRow key={student.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedStudentIds.has(student.id)}
+                      onCheckedChange={() => toggleStudentSelection(student.id)}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">
                     {student.first_name} {student.last_name}
                   </TableCell>
@@ -582,19 +706,30 @@ export default function AdminStudentsPage() {
                     {new Date(student.created_at).toLocaleDateString("es-DO")}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedStudent(student)}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => sendCorrectionLink(student.id)}
+                        disabled={!student.email || sendingLinkId === student.id}
+                        title={student.email ? "Enviar enlace de corrección" : "Sin correo electrónico"}
+                      >
+                        <Mail className={`w-4 h-4 ${sendingLinkId === student.id ? "animate-pulse" : ""}`} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedStudent(student)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
               {(!paginatedStudents || paginatedStudents.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No hay estudiantes registrados
                   </TableCell>
                 </TableRow>

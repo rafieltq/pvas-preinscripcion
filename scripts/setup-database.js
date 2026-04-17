@@ -64,12 +64,38 @@ async function setupDatabase() {
       course_id INTEGER,
       status TEXT DEFAULT 'pending',
       notes TEXT,
+      verification_pin TEXT,
+      verification_pin_expires_at INTEGER,
+      verification_pin_attempts INTEGER DEFAULT 0,
+      correction_sent_at INTEGER,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (course_id) REFERENCES courses(id)
     )
   `);
   console.log("Created students table");
+
+  // Add correction link columns if they don't exist (for existing databases)
+  try {
+    await client.execute(`ALTER TABLE students ADD COLUMN verification_pin TEXT`);
+  } catch (e) {
+    // Column already exists
+  }
+  try {
+    await client.execute(`ALTER TABLE students ADD COLUMN verification_pin_expires_at INTEGER`);
+  } catch (e) {
+    // Column already exists
+  }
+  try {
+    await client.execute(`ALTER TABLE students ADD COLUMN verification_pin_attempts INTEGER DEFAULT 0`);
+  } catch (e) {
+    // Column already exists
+  }
+  try {
+    await client.execute(`ALTER TABLE students ADD COLUMN correction_sent_at INTEGER`);
+  } catch (e) {
+    // Column already exists
+  }
 
   // Create settings table
   await client.execute(`

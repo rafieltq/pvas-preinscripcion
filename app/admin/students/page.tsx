@@ -608,26 +608,26 @@ export default function AdminStudentsPage() {
                 : `Enviar enlaces (${selectedStudentIds.size})`}
             </Button>
           )}
-          <Button variant="outline" onClick={downloadTemplate}>
-            <Download className="h-4 w-4" />
-            Descargar plantilla
-          </Button>
+          {/* <Button variant="outline" onClick={downloadTemplate}> */}
+          {/*   <Download className="h-4 w-4" /> */}
+          {/*   Descargar plantilla */}
+          {/* </Button> */}
           <Button variant="outline" onClick={exportStudentsCsv} disabled={isExporting}>
             <Download className="h-4 w-4" />
             {isExporting ? "Exportando..." : "Exportar CSV"}
           </Button>
-          <Button asChild disabled={isImporting}>
-            <label>
-              <Upload className="h-4 w-4" />
-              {isImporting ? "Importando..." : "Importar CSV"}
-              <input
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={handleFileSelected}
-              />
-            </label>
-          </Button>
+          {/* <Button asChild disabled={isImporting}> */}
+          {/*   <label> */}
+          {/*     <Upload className="h-4 w-4" /> */}
+          {/*     {isImporting ? "Importando..." : "Importar CSV"} */}
+          {/*     <input */}
+          {/*       type="file" */}
+          {/*       accept=".csv,text/csv" */}
+          {/*       className="hidden" */}
+          {/*       onChange={handleFileSelected} */}
+          {/*     /> */}
+          {/*   </label> */}
+          {/* </Button> */}
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por estado" />

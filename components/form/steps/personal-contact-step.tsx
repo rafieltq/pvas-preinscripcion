@@ -152,8 +152,8 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
               id="phone"
               type="tel"
               value={formData.phone}
-              onChange={(e) => updateFormData({ phone: formatDrPhone(e.target.value) })}
-              placeholder="809-000-0000"
+              onChange={(e) => updateFormData({ phone: e.target.value })}
+              placeholder="8090000000"
             />
           </div>
         </div>
@@ -212,8 +212,8 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
                   id="father_phone"
                   type="tel"
                   value={formData.father_phone}
-                  onChange={(e) => updateFormData({ father_phone: formatDrPhone(e.target.value) })}
-                  placeholder="809-555-0100"
+                  onChange={(e) => updateFormData({ father_phone: e.target.value })}
+                  placeholder="8095550100"
                 />
               </div>
               <div className="space-y-2">
@@ -280,8 +280,8 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
                   id="mother_phone"
                   type="tel"
                   value={formData.mother_phone}
-                  onChange={(e) => updateFormData({ mother_phone: formatDrPhone(e.target.value) })}
-                  placeholder="829-555-0100"
+                  onChange={(e) => updateFormData({ mother_phone: e.target.value })}
+                  placeholder="8295550100"
                 />
               </div>
               <div className="space-y-2">
@@ -348,8 +348,8 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
                   id="guardian_phone"
                   type="tel"
                   value={formData.guardian_phone}
-                  onChange={(e) => updateFormData({ guardian_phone: formatDrPhone(e.target.value) })}
-                  placeholder="849-555-0100"
+                  onChange={(e) => updateFormData({ guardian_phone: e.target.value })}
+                  placeholder="8495550100"
                 />
               </div>
               <div className="space-y-2">

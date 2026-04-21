@@ -234,6 +234,7 @@ export default function AdminStudentsPage() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set())
   const [sendingLinkId, setSendingLinkId] = useState<number | null>(null)
   const [sendingBulkLinks, setSendingBulkLinks] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const filteredStudents = students?.filter((s) =>
     filterStatus === "all" ? true : s.status === filterStatus
@@ -417,6 +418,46 @@ export default function AdminStudentsPage() {
     downloadCsv([sampleRow], "plantilla-importar-estudiantes.csv")
   }
 
+  const exportStudentsCsv = async () => {
+    setIsExporting(true)
+    try {
+      const response = await fetch("/api/students/export")
+
+      if (!response.ok) {
+        let errorMessage = "No se pudo exportar el listado de estudiantes"
+        try {
+          const errorPayload = (await response.json()) as { error?: string }
+          if (errorPayload.error) {
+            errorMessage = errorPayload.error
+          }
+        } catch {
+          // Ignore JSON parse failures and keep fallback error message
+        }
+
+        toast.error(errorMessage)
+        return
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement("a")
+      const date = new Date().toISOString().slice(0, 10)
+
+      anchor.href = url
+      anchor.download = `estudiantes-${date}.csv`
+      document.body.appendChild(anchor)
+      anchor.click()
+      document.body.removeChild(anchor)
+      URL.revokeObjectURL(url)
+
+      toast.success("Listado exportado correctamente")
+    } catch {
+      toast.error("No se pudo exportar el listado de estudiantes")
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const handleFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
     event.target.value = ""
@@ -570,6 +611,10 @@ export default function AdminStudentsPage() {
           <Button variant="outline" onClick={downloadTemplate}>
             <Download className="h-4 w-4" />
             Descargar plantilla
+          </Button>
+          <Button variant="outline" onClick={exportStudentsCsv} disabled={isExporting}>
+            <Download className="h-4 w-4" />
+            {isExporting ? "Exportando..." : "Exportar CSV"}
           </Button>
           <Button asChild disabled={isImporting}>
             <label>

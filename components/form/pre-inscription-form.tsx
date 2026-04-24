@@ -10,11 +10,17 @@ import { DocumentsStep } from "./steps/documents-step"
 import { ReviewStep } from "./steps/review-step"
 import { SuccessStep } from "./steps/success-step"
 import { useState } from "react"
+import { toast } from "sonner"
 
 const steps = ["Acuerdo", "Personal y Contacto", "Académico", "Documentos", "Revisión"]
 
+interface ApiErrorResponse {
+  error: string
+  details?: Record<string, string>
+}
+
 export function PreInscriptionForm() {
-  const { formData, currentStep, setCurrentStep, resetForm } = useFormContext()
+  const { formData, setCurrentStep, resetForm, setFormErrors, currentStep } = useFormContext()
   const [isSuccess, setIsSuccess] = useState(false)
 
   const handleNext = () => setCurrentStep(currentStep + 1)
@@ -54,7 +60,44 @@ export function PreInscriptionForm() {
     if (response.ok) {
       setIsSuccess(true)
     } else {
-      alert("Error al enviar la solicitud. Por favor intente de nuevo.")
+      try {
+        const data = (await response.json()) as ApiErrorResponse
+        
+        if (data.details && Object.keys(data.details).length > 0) {
+          setFormErrors(data.details)
+          
+          Object.entries(data.details).forEach(([, message]) => {
+            toast.error(message, {
+              duration: 5000,
+            })
+          })
+          
+          const stepMap: Record<number, number> = {
+            1: 1,
+            first_name: 1, last_name: 1, cedula: 1, age: 1, gender: 1, birth_date: 1,
+            father_first_name: 1, father_last_name: 1, father_phone: 1,
+            mother_first_name: 1, mother_last_name: 1, mother_phone: 1,
+            guardian_first_name: 1, guardian_last_name: 1, guardian_phone: 1,
+            2: 2,
+            previous_institution: 2, course_id: 2,
+            3: 3,
+            hasIdCopy: 3, hasBirthCertificate: 3, hasGrades: 3, hasPhoto: 3,
+          }
+          
+          const targetStep = stepMap[Object.keys(data.details)[0] as keyof typeof stepMap]
+          if (targetStep !== undefined && targetStep !== currentStep) {
+            setCurrentStep(targetStep)
+          }
+        } else {
+          toast.error(data.error || "Error al enviar la solicitud. Por favor intente de nuevo.", {
+            duration: 5000,
+          })
+        }
+      } catch {
+        toast.error("Error al procesar la respuesta del servidor. Por favor intente de nuevo.", {
+          duration: 5000,
+        })
+      }
     }
   }
 

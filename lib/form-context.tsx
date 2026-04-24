@@ -83,9 +83,16 @@ const initialFormData: FormData = {
   hasPhoto: false,
 }
 
+export interface FormErrors {
+  [key: string]: string | undefined;
+}
+
 interface FormContextType {
   formData: FormData
   updateFormData: (data: Partial<FormData>) => void
+  formErrors: FormErrors
+  setFormErrors: (errors: FormErrors) => void
+  clearFieldError: (field: string) => void
   currentStep: number
   setCurrentStep: (step: number) => void
   resetForm: () => void
@@ -96,19 +103,29 @@ const FormContext = createContext<FormContextType | undefined>(undefined)
 export function FormProvider({ children }: { children: ReactNode }) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [currentStep, setCurrentStep] = useState(0)
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
 
   const updateFormData = (data: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...data }))
   }
 
+  const clearFieldError = (field: string) => {
+    setFormErrors((prev) => {
+      const newErrors = { ...prev }
+      delete newErrors[field]
+      return newErrors
+    })
+  }
+
   const resetForm = () => {
     setFormData(initialFormData)
     setCurrentStep(0)
+    setFormErrors({})
   }
 
   return (
     <FormContext.Provider
-      value={{ formData, updateFormData, currentStep, setCurrentStep, resetForm }}
+      value={{ formData, updateFormData, formErrors, setFormErrors, clearFieldError, currentStep, setCurrentStep, resetForm }}
     >
       {children}
     </FormContext.Provider>

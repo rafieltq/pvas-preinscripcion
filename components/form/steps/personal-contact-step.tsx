@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { AlertCircle, AlertTriangle } from "lucide-react"
 
 const DR_PHONE_REGEX = /^(809|829|849)\d{7}$/
 
@@ -12,15 +13,37 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, "")
 }
 
-function formatDrPhone(value: string) {
-  const digits = onlyDigits(value).slice(0, 10)
-  if (digits.length <= 3) return digits
-  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`
-  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+function getPhoneDigitCount(value: string): number {
+  return onlyDigits(value).length
 }
 
 function isValidDrPhone(value: string) {
   return DR_PHONE_REGEX.test(onlyDigits(value))
+}
+
+function getPhoneError(phone: string): string | null {
+  if (!phone.trim()) return null
+  
+  const digits = getPhoneDigitCount(phone)
+  if (digits === 0) return null
+  
+  if (digits < 10) {
+    return `El teléfono debe tener 10 dígitos. Actualmente tiene ${digits} dígito(s). Formato esperado: 809-000-0000`
+  }
+  if (digits > 10) {
+    return `El teléfono tiene ${digits} dígitos. Máximo permitido: 10 dígitos.`
+  }
+  if (!isValidDrPhone(phone)) {
+    return `Teléfono inválido. Debe comenzar con 809, 829 o 849. Ejemplo: 809-555-0100`
+  }
+  
+  return null
+}
+
+function getNameError(name: string, label: string): string | null {
+  if (name.trim()) return null
+  
+  return `El ${label} es requerido`
 }
 
 interface PersonalContactStepProps {
@@ -29,9 +52,28 @@ interface PersonalContactStepProps {
 }
 
 export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps) {
-  const { formData, updateFormData } = useFormContext()
+  const { formData, updateFormData, formErrors, clearFieldError } = useFormContext()
 
-  const hasBasePersonalInfo =
+  const handleFieldChange = (field: string, value: string | number | null) => {
+    updateFormData({ [field]: value })
+    clearFieldError(field)
+  }
+
+  const hasAtLeastOneRepresentative = 
+    (!formData.father_cannot_provide && 
+      formData.father_first_name.trim() && 
+      formData.father_last_name.trim() && 
+      isValidDrPhone(formData.father_phone)) ||
+    (!formData.mother_cannot_provide && 
+      formData.mother_first_name.trim() && 
+      formData.mother_last_name.trim() && 
+      isValidDrPhone(formData.mother_phone)) ||
+    (!formData.guardian_cannot_provide && 
+      formData.guardian_first_name.trim() && 
+      formData.guardian_last_name.trim() && 
+      isValidDrPhone(formData.guardian_phone))
+
+  const isValid = hasAtLeastOneRepresentative &&
     formData.first_name.trim() &&
     formData.last_name.trim() &&
     formData.cedula.trim() &&
@@ -39,27 +81,36 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
     formData.gender !== "" &&
     formData.birth_date
 
-  const hasFatherInfo =
-    !formData.father_cannot_provide &&
-    formData.father_first_name.trim() &&
-    formData.father_last_name.trim() &&
+  const fatherPhoneError = getPhoneError(formData.father_phone)
+  const motherPhoneError = getPhoneError(formData.mother_phone)
+  const guardianPhoneError = getPhoneError(formData.guardian_phone)
+
+  const fatherNameError = getNameError(formData.father_first_name, "nombre del padre") || 
+    (formData.father_first_name.trim() && getNameError(formData.father_last_name, "apellido del padre"))
+  const motherNameError = getNameError(formData.mother_first_name, "nombre de la madre") ||
+    (formData.mother_first_name.trim() && getNameError(formData.mother_last_name, "apellido de la madre"))
+  const guardianNameError = getNameError(formData.guardian_first_name, "nombre del tutor") ||
+    (formData.guardian_first_name.trim() && getNameError(formData.guardian_last_name, "apellido del tutor"))
+
+  const hasFatherPartial = formData.father_first_name.trim() || formData.father_last_name.trim() || formData.father_phone.trim()
+  const hasMotherPartial = formData.mother_first_name.trim() || formData.mother_last_name.trim() || formData.mother_phone.trim()
+  const hasGuardianPartial = formData.guardian_first_name.trim() || formData.guardian_last_name.trim() || formData.guardian_phone.trim()
+
+  const fatherIncomplete = !formData.father_cannot_provide && hasFatherPartial && !(
+    formData.father_first_name.trim() && 
+    formData.father_last_name.trim() && 
     isValidDrPhone(formData.father_phone)
-
-  const hasMotherInfo =
-    !formData.mother_cannot_provide &&
-    formData.mother_first_name.trim() &&
-    formData.mother_last_name.trim() &&
+  )
+  const motherIncomplete = !formData.mother_cannot_provide && hasMotherPartial && !(
+    formData.mother_first_name.trim() && 
+    formData.mother_last_name.trim() && 
     isValidDrPhone(formData.mother_phone)
-
-  const hasGuardianInfo =
-    !formData.guardian_cannot_provide &&
-    formData.guardian_first_name.trim() &&
-    formData.guardian_last_name.trim() &&
+  )
+  const guardianIncomplete = !formData.guardian_cannot_provide && hasGuardianPartial && !(
+    formData.guardian_first_name.trim() && 
+    formData.guardian_last_name.trim() && 
     isValidDrPhone(formData.guardian_phone)
-
-  const hasAtLeastOneRepresentative = hasFatherInfo || hasMotherInfo || hasGuardianInfo
-
-  const isValid = hasBasePersonalInfo && hasAtLeastOneRepresentative
+  )
 
   return (
     <div className="space-y-6">
@@ -71,18 +122,32 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
             <Input
               id="first_name"
               value={formData.first_name}
-              onChange={(e) => updateFormData({ first_name: e.target.value })}
+              onChange={(e) => handleFieldChange("first_name", e.target.value)}
               placeholder="Juan"
+              className={formErrors.first_name ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {formErrors.first_name && (
+              <div className="flex items-center gap-1.5 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{formErrors.first_name}</span>
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="last_name">Apellido *</Label>
             <Input
               id="last_name"
               value={formData.last_name}
-              onChange={(e) => updateFormData({ last_name: e.target.value })}
+              onChange={(e) => handleFieldChange("last_name", e.target.value)}
               placeholder="Pérez"
+              className={formErrors.last_name ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {formErrors.last_name && (
+              <div className="flex items-center gap-1.5 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{formErrors.last_name}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -92,9 +157,16 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
             <Input
               id="cedula"
               value={formData.cedula}
-              onChange={(e) => updateFormData({ cedula: e.target.value })}
+              onChange={(e) => handleFieldChange("cedula", e.target.value)}
               placeholder="00100000000"
+              className={formErrors.cedula ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {formErrors.cedula && (
+              <div className="flex items-center gap-1.5 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{formErrors.cedula}</span>
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="age">Edad *</Label>
@@ -104,22 +176,35 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
               min="1"
               max="100"
               value={formData.age ?? ""}
-              onChange={(e) => updateFormData({ age: e.target.value ? Number(e.target.value) : null })}
+              onChange={(e) => handleFieldChange("age", e.target.value ? Number(e.target.value) : null)}
               placeholder="15"
+              className={formErrors.age ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {formErrors.age && (
+              <div className="flex items-center gap-1.5 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{formErrors.age}</span>
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="gender">Género *</Label>
             <select
               id="gender"
               value={formData.gender}
-              onChange={(e) => updateFormData({ gender: e.target.value })}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              onChange={(e) => handleFieldChange("gender", e.target.value)}
+              className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${formErrors.gender ? "border-destructive focus-visible:ring-destructive" : ""}`}
             >
               <option value="">Seleccione</option>
               <option value="M">Masculino</option>
               <option value="F">Femenino</option>
             </select>
+            {formErrors.gender && (
+              <div className="flex items-center gap-1.5 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{formErrors.gender}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -130,8 +215,15 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
               id="birth_date"
               type="date"
               value={formData.birth_date}
-              onChange={(e) => updateFormData({ birth_date: e.target.value })}
+              onChange={(e) => handleFieldChange("birth_date", e.target.value)}
+              className={formErrors.birth_date ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {formErrors.birth_date && (
+              <div className="flex items-center gap-1.5 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{formErrors.birth_date}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -161,6 +253,48 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
 
       <div className="space-y-4">
         <h3 className="font-medium text-foreground">Representantes</h3>
+
+        {(!formData.father_cannot_provide && fatherIncomplete) && (
+          <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Información incompleta del padre</p>
+                <p className="text-destructive/80 mt-1">
+                  Complete todos los campos requeridos: nombre, apellido y teléfono válido (10 dígitos).
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {(!formData.mother_cannot_provide && motherIncomplete) && (
+          <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Información incompleta de la madre</p>
+                <p className="text-destructive/80 mt-1">
+                  Complete todos los campos requeridos: nombre, apellido y teléfono válido (10 dígitos).
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {(!formData.guardian_cannot_provide && guardianIncomplete) && (
+          <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Información incompleta del tutor</p>
+                <p className="text-destructive/80 mt-1">
+                  Complete todos los campos requeridos: nombre, apellido y teléfono válido (10 dígitos).
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="rounded-md border p-4 space-y-4">
           <div className="flex items-center justify-between gap-4">
@@ -193,28 +327,41 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
                 <Input
                   id="father_first_name"
                   value={formData.father_first_name}
-                  onChange={(e) => updateFormData({ father_first_name: e.target.value })}
+                  onChange={(e) => handleFieldChange("father_first_name", e.target.value)}
                   placeholder="Ejemplo: Juan"
                 />
+                {fatherNameError && hasFatherPartial && (
+                  <div className="flex items-center gap-1.5 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{fatherNameError}</span>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="father_last_name">Apellido</Label>
                 <Input
                   id="father_last_name"
                   value={formData.father_last_name}
-                  onChange={(e) => updateFormData({ father_last_name: e.target.value })}
+                  onChange={(e) => handleFieldChange("father_last_name", e.target.value)}
                   placeholder="Ejemplo: Pérez"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="father_phone">Teléfono</Label>
+                <Label htmlFor="father_phone">Teléfono *</Label>
                 <Input
                   id="father_phone"
                   type="tel"
                   value={formData.father_phone}
-                  onChange={(e) => updateFormData({ father_phone: e.target.value })}
+                  onChange={(e) => handleFieldChange("father_phone", e.target.value)}
                   placeholder="8095550100"
                 />
+                {fatherPhoneError && hasFatherPartial && (
+                  <div className="flex items-start gap-1.5 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <span>{fatherPhoneError}</span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">10 dígitos: 809, 829 o 849</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="father_email">Correo</Label>
@@ -261,28 +408,41 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
                 <Input
                   id="mother_first_name"
                   value={formData.mother_first_name}
-                  onChange={(e) => updateFormData({ mother_first_name: e.target.value })}
+                  onChange={(e) => handleFieldChange("mother_first_name", e.target.value)}
                   placeholder="Ejemplo: Ana"
                 />
+                {motherNameError && hasMotherPartial && (
+                  <div className="flex items-center gap-1.5 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{motherNameError}</span>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="mother_last_name">Apellido</Label>
                 <Input
                   id="mother_last_name"
                   value={formData.mother_last_name}
-                  onChange={(e) => updateFormData({ mother_last_name: e.target.value })}
+                  onChange={(e) => handleFieldChange("mother_last_name", e.target.value)}
                   placeholder="Ejemplo: Gómez"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mother_phone">Teléfono</Label>
+                <Label htmlFor="mother_phone">Teléfono *</Label>
                 <Input
                   id="mother_phone"
                   type="tel"
                   value={formData.mother_phone}
-                  onChange={(e) => updateFormData({ mother_phone: e.target.value })}
+                  onChange={(e) => handleFieldChange("mother_phone", e.target.value)}
                   placeholder="8295550100"
                 />
+                {motherPhoneError && hasMotherPartial && (
+                  <div className="flex items-start gap-1.5 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <span>{motherPhoneError}</span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">10 dígitos: 809, 829 o 849</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="mother_email">Correo</Label>
@@ -329,28 +489,41 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
                 <Input
                   id="guardian_first_name"
                   value={formData.guardian_first_name}
-                  onChange={(e) => updateFormData({ guardian_first_name: e.target.value })}
+                  onChange={(e) => handleFieldChange("guardian_first_name", e.target.value)}
                   placeholder="Ejemplo: Carlos"
                 />
+                {guardianNameError && hasGuardianPartial && (
+                  <div className="flex items-center gap-1.5 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{guardianNameError}</span>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="guardian_last_name">Apellido</Label>
                 <Input
                   id="guardian_last_name"
                   value={formData.guardian_last_name}
-                  onChange={(e) => updateFormData({ guardian_last_name: e.target.value })}
+                  onChange={(e) => handleFieldChange("guardian_last_name", e.target.value)}
                   placeholder="Ejemplo: Díaz"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="guardian_phone">Teléfono</Label>
+                <Label htmlFor="guardian_phone">Teléfono *</Label>
                 <Input
                   id="guardian_phone"
                   type="tel"
                   value={formData.guardian_phone}
-                  onChange={(e) => updateFormData({ guardian_phone: e.target.value })}
+                  onChange={(e) => handleFieldChange("guardian_phone", e.target.value)}
                   placeholder="8495550100"
                 />
+                {guardianPhoneError && hasGuardianPartial && (
+                  <div className="flex items-start gap-1.5 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <span>{guardianPhoneError}</span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">10 dígitos: 809, 829 o 849</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="guardian_email">Correo</Label>
@@ -368,9 +541,17 @@ export function PersonalContactStep({ onNext, onBack }: PersonalContactStepProps
       </div>
 
       {!hasAtLeastOneRepresentative && (
-        <p className="text-sm text-destructive">
-          Debe completar la información de al menos un representante (padre, madre o tutor).
-        </p>
+        <div className="rounded-md bg-destructive/10 border border-destructive/30 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-6 w-6 flex-shrink-0 text-destructive mt-0.5" />
+            <div>
+              <p className="font-medium text-destructive">Representante requerido</p>
+              <p className="text-sm text-destructive/80 mt-1">
+                Debe completar la información de al menos un representante (padre, madre o tutor) con todos sus datos: nombre, apellido y un teléfono válido de 10 dígitos.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex justify-between pt-4">

@@ -342,7 +342,7 @@ export function PersonalInfoStep({ onNext }: PersonalInfoStepProps) {
 
       {!hasAtLeastOneRepresentative && (
         <p className="text-sm text-destructive">
-          Debe completar la información de al menos un representante (padre, madre o tutor).
+          Información de padre, madre o tutor es requerida. nombre, apellido y teléfono de al menos uno de ellos debe ser proporcionado. Si no puede llenar esta información, marque la casilla "No se puede llenar" correspondiente.
         </p>
       )}
 

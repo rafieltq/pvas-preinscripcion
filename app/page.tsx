@@ -2,7 +2,7 @@
 
 import { FormProvider } from "@/lib/form-context"
 import { PreInscriptionForm } from "@/components/form/pre-inscription-form"
-import { GraduationCap } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import useSWR from "swr"
 
@@ -24,7 +24,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <GraduationCap className="w-10 h-10" />
+              <Image src="/logo.webp" alt="Logo Politécnico Vicente Aquilino Santos" width={40} height={40} className="w-10 h-10 rounded-full bg-white" priority />
               <div>
                 <h1 className="text-xl font-bold">Politécnico Vicente Aquilino Santos</h1>
                 <p className="text-sm text-primary-foreground/80">Sistema de Pre-Inscripción</p>

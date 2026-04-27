@@ -10,7 +10,7 @@ import { getOptionalAdminSession, requireAdminSession } from "@/lib/auth/api";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const availableOnly = searchParams.get("available") === "true";
+    const availableOnly = searchParams.get("active") === "true";
     const session = await getOptionalAdminSession(request);
 
     const courses = session

@@ -12,7 +12,7 @@ export async function GET(request: Request) {
       getCourses(),
     ]);
     
-    const activeCourses = courses.filter((c) => c.active === 1);
+    const activeCourses = courses.filter((course) => course.active);
     const statusCounts = {
       pending: 0,
       in_review: 0,

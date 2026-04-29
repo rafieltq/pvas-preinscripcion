@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
       description: "Pre-inscripciones recibidas",
     },
     {
-      title: "Carreras Activas",
+      title: "Carreras Abiertas",
       value: stats?.totalCourses || 0,
       icon: BookOpen,
       description: "Programas disponibles",

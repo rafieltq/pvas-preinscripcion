@@ -26,18 +26,23 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Download,
-  Eye,
-  Mail,
-  Upload,
+   ChevronLeft,
+   ChevronRight,
+   ChevronsLeft,
+   ChevronsRight,
+   Download,
+   Eye,
+   Mail,
+   Upload,
+   Pencil,
 } from "lucide-react"
 import { toast } from "sonner"
 import type { Student, Course } from "@/lib/db/types"
@@ -128,6 +133,22 @@ function getImportStatusLabel(status: ImportStatus) {
   if (status === "created") return "Creado"
   if (status === "skipped") return "Omitido"
   return "Error"
+}
+
+function formatDateForInput(dateStr: string): string {
+  const parts = dateStr.split("/")
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[0].padStart(2, "0")}-${parts[1].padStart(2, "0")}`
+  }
+  return dateStr
+}
+
+function formatDateForApi(dateStr: string): string {
+  const parts = dateStr.split("-")
+  if (parts.length === 3) {
+    return `${parseInt(parts[1])}/${parseInt(parts[2])}/${parts[0]}`
+  }
+  return dateStr
 }
 
 function csvEscape(value: string | number | null | undefined) {
@@ -226,6 +247,7 @@ export default function AdminStudentsPage() {
   const { data: students, mutate } = useSWR<Student[]>("/api/students", fetcher)
   const { data: courses } = useSWR<Course[]>("/api/courses", fetcher)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+const [editingStudent, setEditingStudent] = useState<Student | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [isImporting, setIsImporting] = useState(false)
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null)
@@ -235,6 +257,75 @@ export default function AdminStudentsPage() {
   const [sendingLinkId, setSendingLinkId] = useState<number | null>(null)
   const [sendingBulkLinks, setSendingBulkLinks] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [editForm, setEditForm] = useState<Record<string, string>>({})
+
+  const openEditDialog = (student: Student) => {
+    setEditingStudent(student)
+    setEditForm({
+      first_name: student.first_name || "",
+      last_name: student.last_name || "",
+      cedula: student.cedula || "",
+      birth_date: student.birth_date ? formatDateForInput(student.birth_date) : "",
+      gender: student.gender || "",
+      age: student.age != null ? String(student.age) : "",
+      email: student.email || "",
+      phone: student.phone || "",
+      education_level: student.education_level || "",
+      previous_institution: student.previous_institution || "",
+      course_id: student.course_id != null ? String(student.course_id) : "",
+      father_first_name: student.father_first_name || "",
+      father_last_name: student.father_last_name || "",
+      father_phone: student.father_phone || "",
+      father_email: student.father_email || "",
+      mother_first_name: student.mother_first_name || "",
+      mother_last_name: student.mother_last_name || "",
+      mother_phone: student.mother_phone || "",
+      mother_email: student.mother_email || "",
+      guardian_first_name: student.guardian_first_name || "",
+      guardian_last_name: student.guardian_last_name || "",
+      guardian_phone: student.guardian_phone || "",
+      guardian_email: student.guardian_email || "",
+      notes: student.notes || "",
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingStudent) return
+    setIsSaving(true)
+    try {
+      const payload: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(editForm)) {
+        if (key === "course_id" || key === "age") {
+          payload[key] = value === "" ? null : Number(value)
+        } else if (key === "birth_date") {
+          payload[key] = value === "" ? null : formatDateForApi(value)
+        } else {
+          payload[key] = value === "" ? null : value
+        }
+      }
+      const res = await fetch(`/api/students/${editingStudent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        const msg = data.details
+          ? Object.values(data.details).join("; ")
+          : data.error || "Error al actualizar"
+        toast.error(msg)
+        return
+      }
+      toast.success("Estudiante actualizado correctamente")
+      setEditingStudent(null)
+      mutate()
+    } catch {
+      toast.error("Error al actualizar el estudiante")
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const filteredStudents = students?.filter((s) =>
     filterStatus === "all" ? true : s.status === filterStatus
@@ -761,14 +852,22 @@ export default function AdminStudentsPage() {
                       >
                         <Mail className={`w-4 h-4 ${sendingLinkId === student.id ? "animate-pulse" : ""}`} />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setSelectedStudent(student)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </div>
+<Button
+                         variant="ghost"
+                         size="icon"
+                         onClick={() => setSelectedStudent(student)}
+                       >
+                         <Eye className="w-4 h-4" />
+                       </Button>
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         onClick={() => openEditDialog(student)}
+                         title="Editar estudiante"
+                       >
+                         <Pencil className="w-4 h-4" />
+                       </Button>
+                     </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -936,10 +1035,6 @@ export default function AdminStudentsPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Nivel de Educación</p>
-                  <p className="font-medium capitalize">{selectedStudent.education_level || "-"}</p>
-                </div>
-                <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Institución Anterior</p>
                   <p className="font-medium">{selectedStudent.previous_institution}</p>
                 </div>
@@ -979,8 +1074,154 @@ export default function AdminStudentsPage() {
               </div>
             </div>
           )}
+</DialogContent>
+</Dialog>
+
+      <Dialog open={!!editingStudent} onOpenChange={(open) => { if (!open) setEditingStudent(null) }}>
+        <DialogContent style={{ minWidth: "50vw" }} className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar estudiante</DialogTitle>
+            <DialogDescription>Edite los campos necesarios y guarde los cambios.</DialogDescription>
+          </DialogHeader>
+          {editingStudent && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">Datos personales</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-first_name">Nombre</Label>
+                    <Input id="edit-first_name" value={editForm.first_name || ""} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-last_name">Apellido</Label>
+                    <Input id="edit-last_name" value={editForm.last_name || ""} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-cedula">Cédula</Label>
+                    <Input id="edit-cedula" value={editForm.cedula || ""} onChange={(e) => setEditForm({ ...editForm, cedula: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-birth_date">Fecha de Nacimiento</Label>
+                    <Input id="edit-birth_date" type="date" value={editForm.birth_date || ""} onChange={(e) => setEditForm({ ...editForm, birth_date: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-age">Edad</Label>
+                    <Input id="edit-age" type="number" value={editForm.age || ""} onChange={(e) => setEditForm({ ...editForm, age: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-gender">Género</Label>
+                    <Select value={editForm.gender || ""} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
+                      <SelectTrigger id="edit-gender"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">Masculino</SelectItem>
+                        <SelectItem value="F">Femenino</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-email">Email</Label>
+                    <Input id="edit-email" type="email" value={editForm.email || ""} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-phone">Teléfono</Label>
+                    <Input id="edit-phone" value={editForm.phone || ""} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-previous_institution">Institución Anterior</Label>
+                    <Input className="w-md" id="edit-previous_institution" value={editForm.previous_institution || ""} onChange={(e) => setEditForm({ ...editForm, previous_institution: e.target.value })} />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <Label htmlFor="edit-course_id">Carrera</Label>
+                    <Select value={editForm.course_id || ""} onValueChange={(v) => setEditForm({ ...editForm, course_id: v })}>
+                      <SelectTrigger id="edit-course_id"><SelectValue placeholder="Seleccionar carrera" /></SelectTrigger>
+                      <SelectContent>
+                        {courses?.map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">Padre</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-father_first_name">Nombre</Label>
+                    <Input id="edit-father_first_name" value={editForm.father_first_name || ""} onChange={(e) => setEditForm({ ...editForm, father_first_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-father_last_name">Apellido</Label>
+                    <Input id="edit-father_last_name" value={editForm.father_last_name || ""} onChange={(e) => setEditForm({ ...editForm, father_last_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-father_phone">Teléfono</Label>
+                    <Input id="edit-father_phone" value={editForm.father_phone || ""} onChange={(e) => setEditForm({ ...editForm, father_phone: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-father_email">Email</Label>
+                    <Input id="edit-father_email" type="email" value={editForm.father_email || ""} onChange={(e) => setEditForm({ ...editForm, father_email: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">Madre</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-mother_first_name">Nombre</Label>
+                    <Input id="edit-mother_first_name" value={editForm.mother_first_name || ""} onChange={(e) => setEditForm({ ...editForm, mother_first_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-mother_last_name">Apellido</Label>
+                    <Input id="edit-mother_last_name" value={editForm.mother_last_name || ""} onChange={(e) => setEditForm({ ...editForm, mother_last_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-mother_phone">Teléfono</Label>
+                    <Input id="edit-mother_phone" value={editForm.mother_phone || ""} onChange={(e) => setEditForm({ ...editForm, mother_phone: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-mother_email">Email</Label>
+                    <Input id="edit-mother_email" type="email" value={editForm.mother_email || ""} onChange={(e) => setEditForm({ ...editForm, mother_email: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">Tutor</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-guardian_first_name">Nombre</Label>
+                    <Input id="edit-guardian_first_name" value={editForm.guardian_first_name || ""} onChange={(e) => setEditForm({ ...editForm, guardian_first_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-guardian_last_name">Apellido</Label>
+                    <Input id="edit-guardian_last_name" value={editForm.guardian_last_name || ""} onChange={(e) => setEditForm({ ...editForm, guardian_last_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-guardian_phone">Teléfono</Label>
+                    <Input id="edit-guardian_phone" value={editForm.guardian_phone || ""} onChange={(e) => setEditForm({ ...editForm, guardian_phone: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-guardian_email">Email</Label>
+                    <Input id="edit-guardian_email" type="email" value={editForm.guardian_email || ""} onChange={(e) => setEditForm({ ...editForm, guardian_email: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-notes">Notas</Label>
+                <Textarea id="edit-notes" value={editForm.notes || ""} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingStudent(null)} disabled={isSaving}>Cancelar</Button>
+            <Button onClick={handleSaveEdit} disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar cambios"}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  )
+</div>
+)
 }

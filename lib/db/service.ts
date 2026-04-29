@@ -364,8 +364,9 @@ function validateImportedStudentRow(raw: unknown): { data?: StudentFormData; rea
   for (const key of VALID_IMPORT_COLUMNS) {
     const value = record[key];
 
-    if (value === undefined) {
-      continue;
+if (value === undefined) {
+    normalized[key] = null;
+    continue;
     }
 
     if (key === "course_id") {
@@ -904,7 +905,6 @@ export async function getDashboardStats() {
       SELECT c.name, c.capacity, c.enrolled, 
              ROUND((c.enrolled * 100.0 / c.capacity), 1) as fill_rate
       FROM courses c 
-      WHERE c.active = 1 
       ORDER BY c.enrolled DESC
     `),
     turso.execute(`

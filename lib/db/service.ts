@@ -651,7 +651,7 @@ export async function updateStudent(
     "father_first_name", "father_last_name", "father_phone", "father_email",
     "mother_first_name", "mother_last_name", "mother_phone", "mother_email",
     "guardian_first_name", "guardian_last_name", "guardian_phone", "guardian_email",
-    "email", "phone", "education_level", "previous_institution", "cedula"
+    "email", "phone", "education_level", "previous_institution", "cedula", "course_id"
   ] as const;
 
   for (const key of allowedFields) {
